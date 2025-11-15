@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Test di Attenzione Sostenuta - Visivo (TAS-V)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0; padding: 0;
+      background: #f4f5fb;
+      display: flex; justify-content: center; align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      background: #ffffff;
+      margin: 24px;
+      padding: 24px 28px 32px;
+      border-radius: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+      max-width: 900px; width: 100%;
+    }
+    h1 { font-size: 1.5rem; text-align:center; margin-bottom:4px; }
+    .subtitle { text-align:center; margin-top:0; margin-bottom:16px; font-size:0.95rem; color:#555; }
+    input[type="text"] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; }
+    button.primary {
+      margin-top:10px; padding:8px 16px;
+      border-radius:999px; border:none;
+      background:#2f6fed; color:white; cursor:pointer;
+      font-size: 1rem;
+    }
+    button.primary:hover { opacity: 0.9; }
+
+    #row-container {
+      padding: 16px 10px;
+      background:#fafbff;
+      border-radius:12px;
+      border:1px solid #dde0f0;
+      margin-top: 12px;
+    }
+
+    .cell {
+      font-family:"Courier New", monospace;
+      font-size:1.6rem;
+      width:32px; height:36px;
+      margin:1px 3px;
+      cursor:pointer;
+      background:transparent; border:none;
+      border-radius: 6px;
+    }
+    .cell.selected {
+      background:rgba(47,111,237,0.12);
+      box-shadow:0 0 0 1px rgba(47,111,237,0.7);
+    }
+    .cell.disabled {
+      opacity:0.4;
+      cursor:default;
+      box-shadow:none;
+    }
+
+    #status-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+<h1>Test di Attenzione Sostenuta - Visivo (TAS-V)</h1>
+<p class="subtitle">Versione online automatizzata</p>
+
+<section id="intro">
+  <p>Quando il test inizierà, vedrai una riga di simboli alla volta. Il tuo compito è <strong>cliccare tutti i quadrati pieni (■)</strong>.</p>
+  <p>Ogni riga rimane visibile per <strong>20 secondi</strong> e passa automaticamente alla successiva.</p>
+  <p>Inserisci il tuo codice o iniziali.</p>
+
+  <label>Codice partecipante: </label>
+  <input id="participant-code" type="text">
+
+  <br><button id="start-btn" class="primary">Inizia</button>
+</section>
+
+
+<section id="test" style="display:none;">
+  <div id="status-bar">
+    <div id="row-label"></div>
+    <div>Tempo rimanente: <span id="countdown"></span></div>
+  </div>
+  <div id="message"></div>
+
+  <div id="row-container">
+    <div class="row" id="row-inner"></div>
+  </div>
+</section>
+
+
+<section id="results" style="display:none;">
+  <h2>Risultati TAS-V</h2>
+  <p><strong>Codice partecipante:</strong> <span id="result-code"></span></p>
+
+  <ul>
+    <li><strong>Target totali:</strong> <span id="res-total-targets"></span></li>
+    <li><strong>C (corretti):</strong> <span id="res-C"></span></li>
+    <li><strong>E1 (omissioni):</strong> <span id="res-E1"></span></li>
+    <li><strong>E2 (commissioni):</strong> <span id="res-E2"></span></li>
+    <li><strong>Accuratezza:</strong> <span id="res-accuracy"></span>%</li>
+    <li><strong>Indice di concentrazione:</strong> <span id="res-conc"></span></li>
+  </ul>
+
+  <p><strong>Dati grezzi (per archiviazione o ricerca):</strong></p>
+  <textarea id="raw-data" rows="12" style="width:100%; font-family:monospace;"></textarea>
+</section>
+</div>
+
+
+
+<script>
+/* -------------------
+   RIGA DI PROVA
+---------------------*/
+const practiceRow =
+'□ ○ ■ △ ○ ■ □ ● △ ■ ○ □ ■ ▲ ○ ■ □ ○ ■ △ ○ ■ □ ○ ■ △ ○ ■ □ ● ○ ■ △ □';
+
+
+/* -------------------
+   12 RIGHE ORIGINALI
+---------------------*/
+const testRows = [
+'■ ○ △ ○ □ ■ △ ● ○ □ ▲ ○ ■ ○ □ ○ ▲ ○ □ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■',
+'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
+'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○',
+'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
+'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○',
+'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
+'■ ○ △ ○ □ ■ △ ● ○ □ ▲ ○ ■ ○ □ ○ ▲ ○ □ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■',
+'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
+'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○',
+'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
+'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○',
+'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □'
+];
+
+const ROW_TIME_SECONDS = 20;
+
+
+/* -------------------
+   VARIABILI
+---------------------*/
+let timerId = null;
+let timeLeft = ROW_TIME_SECONDS;
+let currentRowIndex = -1;
+let clickedSets = [];
+let phase = "intro";
+
+
+/* -------------------
+   ELEMENTI DOM
+---------------------*/
+const intro = document.getElementById('intro');
+const test = document.getElementById('test');
+const results = document.getElementById('results');
+const rowLabel = document.getElementById('row-label');
+const countdown = document.getElementById('countdown');
+const message = document.getElementById('message');
+const rowInner = document.getElementById('row-inner');
+const startBtn = document.getElementById('start-btn');
+
+
+/* -------------------
+   AVVIO
+---------------------*/
+startBtn.onclick = () => {
+  const code = document.getElementById('participant-code').value.trim();
+  if (!code) { alert("Inserisci il codice del partecipante."); return; }
+
+  intro.style.display = "none";
+  test.style.display = "block";
+
+  startPractice();
+};
+
+
+/* -------------------
+   RIGA DI PROVA
+---------------------*/
+function startPractice() {
+  phase = "practice";
+  currentRowIndex = -1;
+
+  message.textContent = "Riga di prova – clicca tutti i quadrati pieni (■).";
+  rowLabel.textContent = "Riga di prova";
+
+  renderRow(practiceRow, false);
+
+  startTimer(() => {
+    freezeRow();
+    message.textContent = "Il test inizierà tra pochi secondi...";
+    rowLabel.textContent = "";
+    rowInner.innerHTML = "";
+
+    setTimeout(startTest, 3000);
+  });
+}
+
+
+/* -------------------
+   INIZIO TEST
+---------------------*/
+function startTest() {
+  phase = "test";
+  clickedSets = [];
+  currentRowIndex = 0;
+  message.textContent = "Test – clicca tutti i quadrati pieni (■).";
+
+  startRow();
+}
+
+
+/* -------------------
+   MOSTRA UNA RIGA
+---------------------*/
+function startRow() {
+  if (currentRowIndex >= testRows.length) {
+    finishTest();
+    return;
+  }
+
+  const row = testRows[currentRowIndex];
+  rowLabel.textContent = `Riga ${currentRowIndex + 1} di ${testRows.length}`;
+
+  const clickSet = new Set();
+  clickedSets[currentRowIndex] = clickSet;
+
+  renderRow(row, clickSet);
+
+  startTimer(() => {
+    freezeRow();
+    currentRowIndex++;
+    startRow();
+  });
+}
+
+
+/* -------------------
+   CREA I PULSANTI
+---------------------*/
+function renderRow(rowString, clickSetOrFalse) {
+  rowInner.innerHTML = "";
+  const symbols = rowString.split(" ");
+
+  symbols.forEach((sym, idx) => {
+    const btn = document.createElement("button");
+    btn.textContent = sym;
+    btn.className = "cell";
+
+    if (clickSetOrFalse !== false) {
+      btn.onclick = () => {
+        if (btn.classList.contains("disabled")) return;
+
+        if (clickSetOrFalse.has(idx)) {
+          clickSetOrFalse.delete(idx);
+          btn.classList.remove("selected");
+        } else {
+          clickSetOrFalse.add(idx);
+          btn.classList.add("selected");
+        }
+      };
+    } else {
+      btn.onclick = () => {
+        if (btn.classList.contains("disabled")) return;
+        btn.classList.toggle("selected");
+      };
+    }
+
+    rowInner.appendChild(btn);
+  });
+}
+
+
+/* -------------------
+   TIMER
+---------------------*/
+function startTimer(onEnd) {
+  clearInterval(timerId);
+  timeLeft = ROW_TIME_SECONDS;
+  countdown.textContent = timeLeft + " s";
+
+  timerId = setInterval(() => {
+    timeLeft--;
+    countdown.textContent = timeLeft + " s";
+
+    if (timeLeft <= 0) {
+      clearInterval(timerId);
+      onEnd();
+    }
+  }, 1000);
+}
+
+
+/* -------------------
+   BLOCCA CLIC
+---------------------*/
+function freezeRow() {
+  document.querySelectorAll(".cell").forEach(c => c.classList.add("disabled"));
+}
+
+
+/* -------------------
+   FINE TEST
+---------------------*/
+function finishTest() {
+  test.style.display = "none";
+
+  const score = computeScores();
+
+  document.getElementById("result-code").textContent =
+    document.getElementById("participant-code").value.trim();
+
+  document.getElementById("res-total-targets").textContent = score.totalTargets;
+  document.getElementById("res-C").textContent = score.C;
+  document.getElementById("res-E1").textContent = score.E1;
+  document.getElementById("res-E2").textContent = score.E2;
+  document.getElementById("res-accuracy").textContent = score.accuracy.toFixed(1);
+  document.getElementById("res-conc").textContent = score.concentrationIndex;
+
+  document.getElementById("raw-data").value =
+    JSON.stringify(score, null, 2);
+
+  results.style.display = "block";
+}
+
+
+/* -------------------
+   CALCOLO DEI RISULTATI
+---------------------*/
+function computeScores() {
+  let totalTargets = 0;
+  let C = 0;
+  let E1 = 0;
+  let E2 = 0;
+
+  testRows.forEach((rowString, rowIdx) => {
+    const symbols = rowString.split(" ");
+    const clicks = clickedSets[rowIdx] || new Set();
+
+    symbols.forEach((sym, idx) => {
+      const clicked = clicks.has(idx);
+
+      if (sym === "■") {
+        totalTargets++;
+        if (clicked) C++;
+        else E1++;
+      } else {
+        if (clicked) E2++;
+      }
+    });
+  });
+
+  const accuracy = totalTargets > 0
+    ? ((C - E2) / totalTargets) * 100
+    : 0;
+
+  const concentrationIndex = C - (E1 + E2);
+
+  return {
+    totalTargets,
+    C,
+    E1,
+    E2,
+    accuracy,
+    concentrationIndex
+  };
+}
+</script>
+</body>
+</html>
