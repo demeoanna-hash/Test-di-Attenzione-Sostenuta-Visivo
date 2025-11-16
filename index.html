@@ -70,12 +70,18 @@
 <body>
 <div class="container">
 <h1>Test di Attenzione Sostenuta - Visivo (TAS-V)</h1>
-<p class="subtitle">Versione online automatizzata</p>
+<p class="subtitle">Versione online automatizzata – target: ▵ (triangolo vuoto piccolo)</p>
 
 <section id="intro">
-  <p>Quando il test inizierà, vedrai una riga di simboli alla volta. Il tuo compito è <strong>cliccare tutti i quadrati pieni (■)</strong>.</p>
-  <p>Ogni riga rimane visibile per <strong>20 secondi</strong> e passa automaticamente alla successiva.</p>
-  <p>Inserisci il tuo codice o iniziali.</p>
+  <p>
+    Quando il test inizierà, vedrai una riga di simboli alla volta.
+    Il tuo compito è <strong>cliccare tutti i triangoli vuoti piccoli (▵)</strong>.
+  </p>
+  <p>
+    Ogni riga rimane visibile per <strong>20 secondi</strong> e passa automaticamente alla successiva.
+    Non è possibile tornare indietro.
+  </p>
+  <p>Inserisci il tuo codice o le iniziali prima di iniziare.</p>
 
   <label>Codice partecipante: </label>
   <input id="participant-code" type="text">
@@ -102,15 +108,15 @@
   <p><strong>Codice partecipante:</strong> <span id="result-code"></span></p>
 
   <ul>
-    <li><strong>Target totali:</strong> <span id="res-total-targets"></span></li>
-    <li><strong>C (corretti):</strong> <span id="res-C"></span></li>
-    <li><strong>E1 (omissioni):</strong> <span id="res-E1"></span></li>
-    <li><strong>E2 (commissioni):</strong> <span id="res-E2"></span></li>
+    <li><strong>Target totali (▵):</strong> <span id="res-total-targets"></span></li>
+    <li><strong>C (risposte corrette – target cliccati):</strong> <span id="res-C"></span></li>
+    <li><strong>E1 (omissioni – target non cliccati):</strong> <span id="res-E1"></span></li>
+    <li><strong>E2 (commissioni – simboli non target cliccati):</strong> <span id="res-E2"></span></li>
     <li><strong>Accuratezza:</strong> <span id="res-accuracy"></span>%</li>
-    <li><strong>Indice di concentrazione:</strong> <span id="res-conc"></span></li>
+    <li><strong>Indice di concentrazione (C − (E1 + E2)):</strong> <span id="res-conc"></span></li>
   </ul>
 
-  <p><strong>Dati grezzi (per archiviazione o ricerca):</strong></p>
+  <p><strong>Dati grezzi (per archiviazione o analisi):</strong></p>
   <textarea id="raw-data" rows="12" style="width:100%; font-family:monospace;"></textarea>
 </section>
 </div>
@@ -122,25 +128,25 @@
    RIGA DI PROVA
 ---------------------*/
 const practiceRow =
-'□ ○ ■ △ ○ ■ □ ● △ ■ ○ □ ■ ▲ ○ ■ □ ○ ■ △ ○ ■ □ ○ ■ △ ○ ■ □ ● ○ ■ △ □';
+'□ ○ ▵ △ ○ ▵ □ ● △ ▵ ○ □ ▵ ▲ ○ ▵ □ ○ ▵ △ ○ ▵ □ ○ ▵ △ ○ ▵ □ ● ○ ▵ △ □';
 
 
 /* -------------------
-   12 RIGHE ORIGINALI
+   12 RIGHE DEL TEST (target ▵)
 ---------------------*/
 const testRows = [
-'■ ○ △ ○ □ ■ △ ● ○ □ ▲ ○ ■ ○ □ ○ ▲ ○ □ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■',
-'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
-'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○',
-'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
-'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○',
-'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
-'■ ○ △ ○ □ ■ △ ● ○ □ ▲ ○ ■ ○ □ ○ ▲ ○ □ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■',
-'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
-'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ■ ○ □ ○',
-'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □',
-'■ ○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○',
-'○ □ ○ ■ ○ △ ○ □ ○ ■ ○ △ ○ ■ ○ □ ○ ▲ ○ ■ ○ △ ○ □ ○ ■ ○ □ ○ ■ ○ □ ○ ■ ○ □'
+'▵ ○ △ ○ □ ▵ △ ● ○ □ ▲ ○ ▵ ○ □ ○ ▲ ○ □ ▵ ○ △ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵',
+'○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □',
+'▵ ○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▵ ○ □ ○',
+'○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □',
+'▵ ○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○',
+'○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □',
+'▵ ○ △ ○ □ ▵ △ ● ○ □ ▲ ○ ▵ ○ □ ○ ▲ ○ □ ▵ ○ △ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵',
+'○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □',
+'▵ ○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▵ ○ □ ○',
+'○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □',
+'▵ ○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○',
+'○ □ ○ ▵ ○ △ ○ □ ○ ▵ ○ △ ○ ▵ ○ □ ○ ▲ ○ ▵ ○ △ ○ □ ○ ▵ ○ □ ○ ▵ ○ □ ○ ▵ ○ □'
 ];
 
 const ROW_TIME_SECONDS = 20;
@@ -190,7 +196,7 @@ function startPractice() {
   phase = "practice";
   currentRowIndex = -1;
 
-  message.textContent = "Riga di prova – clicca tutti i quadrati pieni (■).";
+  message.textContent = "Riga di prova – clicca tutti i triangoli vuoti piccoli (▵).";
   rowLabel.textContent = "Riga di prova";
 
   renderRow(practiceRow, false);
@@ -213,7 +219,7 @@ function startTest() {
   phase = "test";
   clickedSets = [];
   currentRowIndex = 0;
-  message.textContent = "Test – clicca tutti i quadrati pieni (■).";
+  message.textContent = "Test – clicca tutti i triangoli vuoti piccoli (▵) in ogni riga.";
 
   startRow();
 }
@@ -349,7 +355,7 @@ function computeScores() {
     symbols.forEach((sym, idx) => {
       const clicked = clicks.has(idx);
 
-      if (sym === "■") {
+      if (sym === "▵") {
         totalTargets++;
         if (clicked) C++;
         else E1++;
